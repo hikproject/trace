@@ -1,0 +1,40 @@
+SELECT 
+    -- Informasi Part
+    x.xmf01 AS code_customer,
+    i.ima021 AS cust_pn,
+    sfb.sfb05 AS leoco_pn,
+    i.ima02 AS part_name,
+
+    -- Informasi WO
+    sfb.sfb01 AS no_wo,
+    sfb.sfb81 AS tanggal_wo_dibuat,
+    sfb.sfb08 AS production_qty,
+
+    -- Informasi FQC
+    qcf.qcf01 AS fqc_no,
+    qcf.qcf04 AS tdate_fqc,
+    qcf.qcf22 AS qsent,
+
+    -- Informasi In Stock & Detail
+    sfu.sfu01 AS stock_in_no,
+    sfu.sfu02 AS stock_in_date,
+    sfv.sfv09 AS stock_in_qty
+
+FROM sfb_file sfb
+-- Join ke Master Part
+LEFT JOIN ima_file i ON sfb.sfb05 = i.ima01
+LEFT JOIN xmf_file x ON sfb.sfb05 = x.xmf03
+
+-- Join ke FQC
+LEFT JOIN qcf_file qcf ON sfb.sfb01 = qcf.qcf02
+
+-- Join ke Detail Barang Masuk (SFV)
+LEFT JOIN sfv_file sfv ON sfb.sfb01 = sfv.sfv11 AND qcf.qcf01 = sfv.sfv17
+
+-- Join ke Header Stock-In (SFU)
+LEFT JOIN sfu_file sfu ON sfv.sfv01 = sfu.sfu01
+
+-- FILTER PARAMETER
+WHERE sfb.sfb05 = 'X1PM050LI00002'
+  AND sfb.sfb81 BETWEEN TO_DATE('2025-12-01', 'YYYY-MM-DD') 
+                    AND TO_DATE('2026-01-31', 'YYYY-MM-DD');

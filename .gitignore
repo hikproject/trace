@@ -1,0 +1,15 @@
+# Dependencies
+/vendor/
+
+# Environment Configuration
+.env
+
+# System & IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Temporary files or exports
+*.xlsx
+*.log
