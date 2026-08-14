@@ -6,6 +6,10 @@ class Part
 {
     public static function search($keyword)
     {
+        $keyword = trim((string) $keyword);
+        if ($keyword === '') return [];
+        $keyword = mb_substr($keyword, 0, 50);
+
         $conn = Database::connect();
 
         $sql = "SELECT * FROM (

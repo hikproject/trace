@@ -6,6 +6,7 @@ require_once __DIR__ . '/../config.php';
 use App\Database;
 use App\Part;
 use App\Report;
+use App\Trace;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -19,6 +20,24 @@ if ($uri === '/api/parts') {
     $keyword = $_GET['q'] ?? '';
     try {
         $results = Part::search($keyword);
+        echo json_encode($results);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['error' => $e->getMessage()]);
+    } finally {
+        Database::close();
+    }
+    exit;
+}
+
+// ──────────────────────────────────────────────
+// Route: /api/customers — Select2 AJAX autocomplete (Trace Pengiriman)
+// ──────────────────────────────────────────────
+if ($uri === '/api/customers') {
+    header('Content-Type: application/json');
+    $keyword = $_GET['q'] ?? '';
+    try {
+        $results = Trace::customers($keyword);
         echo json_encode($results);
     } catch (\Throwable $e) {
         http_response_code(500);
@@ -204,6 +223,111 @@ if ($uri === '/export-excel') {
 
     $writer = new Xlsx($spreadsheet);
     $writer->save('php://output');
+    exit;
+}
+
+// ──────────────────────────────────────────────
+// Route: /export-trace — Download Excel (Trace Pengiriman)
+// ──────────────────────────────────────────────
+if ($uri === '/export-trace') {
+    $customer = $_GET['customer'] ?? '';
+    $partNo   = $_GET['part_no'] ?? '';
+    $dateFrom = $_GET['date_from'] ?? '';
+    $dateTo   = $_GET['date_to'] ?? '';
+
+    if (!$customer && !$partNo) {
+        http_response_code(400);
+        echo 'Parameter tidak lengkap';
+        exit;
+    }
+
+    try {
+        $rows = Trace::getAllData($customer, $partNo, $dateFrom, $dateTo);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo 'Error: ' . $e->getMessage();
+        exit;
+    } finally {
+        Database::close();
+    }
+
+    if (empty($rows)) {
+        http_response_code(404);
+        echo 'Tidak ada data untuk trace tersebut.';
+        exit;
+    }
+
+    $spreadsheet = new Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setTitle('Trace Pengiriman');
+
+    $headers = ['No DO', 'Tanggal Kirim', 'Lot (Kode Produksi/WO)', 'Leoco PN', 'Nama Barang', 'Qty'];
+    foreach ($headers as $ci => $h) {
+        $sheet->setCellValueByColumnAndRow($ci + 1, 1, $h);
+    }
+    $sheet->getStyleByColumnAndRow(1, 1, count($headers), 1)
+        ->getFont()->setBold(true)
+        ->getColor()->setRGB('FFFFFF');
+    $sheet->getStyleByColumnAndRow(1, 1, count($headers), 1)
+        ->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+        ->getStartColor()->setRGB('3B63C2');
+
+    $rowNum = 2;
+    foreach ($rows as $r) {
+        $sheet->setCellValueByColumnAndRow(1, $rowNum, $r['no_do']);
+        $sheet->setCellValueByColumnAndRow(2, $rowNum, $r['tgl_kirim']);
+        $sheet->setCellValueByColumnAndRow(3, $rowNum, $r['lot_wo']);
+        $sheet->setCellValueByColumnAndRow(4, $rowNum, $r['leoco_pn']);
+        $sheet->setCellValueByColumnAndRow(5, $rowNum, $r['part_name']);
+        $sheet->setCellValueByColumnAndRow(6, $rowNum, (float) $r['qty']);
+        $rowNum++;
+    }
+
+    $columns = ['A','B','C','D','E','F'];
+    foreach ($columns as $colLetter) {
+        $sheet->getColumnDimension($colLetter)->setAutoSize(true);
+    }
+
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment; filename="trace_pengiriman.xlsx"');
+    header('Cache-Control: max-age=0');
+
+    $writer = new Xlsx($spreadsheet);
+    $writer->save('php://output');
+    exit;
+}
+
+// ──────────────────────────────────────────────
+// Route: /trace — Trace Pengiriman (form + result)
+// ──────────────────────────────────────────────
+if ($uri === '/trace') {
+    $customer  = $_GET['customer'] ?? '';
+    $partNo    = $_GET['part_no'] ?? '';
+    $dateFrom  = $_GET['date_from'] ?? '';
+    $dateTo    = $_GET['date_to'] ?? '';
+    $page      = max(1, (int) ($_GET['page'] ?? 1));
+
+    $trace      = null;
+    $traceError = null;
+    $searchMode = $customer !== '' ? 'customer' : ($partNo !== '' ? 'part' : '');
+
+    if ($searchMode) {
+        try {
+            $trace = Trace::getData($customer, $partNo, $dateFrom, $dateTo, $page);
+        } catch (\Throwable $e) {
+            $traceError = $e->getMessage();
+        } finally {
+            Database::close();
+        }
+    }
+
+    require __DIR__ . '/../views/header.php';
+    require __DIR__ . '/../views/trace_form.php';
+    if ($traceError) {
+        echo '<div class="alert alert-danger">Error: ' . htmlspecialchars($traceError) . '</div>';
+    }
+    require __DIR__ . '/../views/trace_view.php';
+    require __DIR__ . '/../views/footer.php';
     exit;
 }
 

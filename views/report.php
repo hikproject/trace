@@ -6,7 +6,7 @@
 
 <?php $idx = 0; foreach ($report['data'] as $wo): $idx++; ?>
 <div class="card mb-2 border">
-    <div class="card-header bg-light p-0" role="button" data-bs-toggle="collapse" data-bs-target="#woDetail<?= $idx ?>" aria-expanded="false">
+    <div class="card-header bg-light p-0" role="button" aria-expanded="false">
         <div class="w-100 m-0 py-1 px-3">
             <div class="row gx-2" style="font-size:11px;color:#6c757d;">
                 <div class="col-auto" style="width:28px"></div>
@@ -138,19 +138,14 @@
 <?php endforeach; ?>
 
 <script>
-document.querySelectorAll('.collapse').forEach(function(collapseEl) {
-    // Menggunakan CSS.escape() untuk mengamankan karakter khusus/dash pada ID saat query selector
-    var headerEl = document.querySelector('[data-bs-target="#' + CSS.escape(collapseEl.id) + '"]');
-    if (!headerEl) return;
-    
-    var icon = headerEl.querySelector('.toggle-icon');
-
-    collapseEl.addEventListener('shown.bs.collapse', function() {
-        if (icon) icon.textContent = '▼';
-    });
-
-    collapseEl.addEventListener('hidden.bs.collapse', function() {
-        if (icon) icon.textContent = '▶';
+document.querySelectorAll('.card-header[role="button"]').forEach(function(header) {
+    header.addEventListener('click', function() {
+        var collapse = header.nextElementSibling;
+        if (!collapse || !collapse.classList.contains('collapse')) return;
+        var icon = header.querySelector('.toggle-icon');
+        var isShown = collapse.classList.toggle('show');
+        if (icon) icon.textContent = isShown ? '▼' : '▶';
+        header.setAttribute('aria-expanded', isShown ? 'true' : 'false');
     });
 });
 </script>
