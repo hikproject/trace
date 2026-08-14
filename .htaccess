@@ -1,0 +1,14 @@
+# Optional: use this file only if DocumentRoot points to the project ROOT
+# (recommended config points DocumentRoot to /public instead).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteRule ^$ public/ [L]
+    RewriteRule (.*) public/$1 [L]
+</IfModule>
+
+<IfModule mod_authz_core.c>
+    <FilesMatch "^(\.env|\.env\.example|composer\.(json|lock)|query\.text|start\.bat|README\.md)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>

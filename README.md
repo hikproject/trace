@@ -81,7 +81,9 @@ atau jalankan `start.bat` (Windows).
 
 1. Install Apache + PHP (modul `php8`) + `oci8`.
 2. Arahkan **DocumentRoot** ke folder `public/`.
-3. Konfigurasi virtual host, contoh:
+3. File `public/.htaccess` sudah disertakan dan otomatis me-rewrite semua request ke `index.php`
+   (URL rewrite). Pastikan modul `mod_rewrite` aktif dan `AllowOverride All` pada konfigurasi.
+4. Konfigurasi virtual host, contoh:
 
    ```apache
    <VirtualHost *:80>
@@ -96,14 +98,16 @@ atau jalankan `start.bat` (Windows).
    </VirtualHost>
    ```
 
-4. Pastikan ekstensi `oci8` aktif (`extension=php_oci8.dll` di `php.ini`) dan `allow_url_fopen=On`.
+5. Pastikan ekstensi `oci8` aktif (`extension=php_oci8.dll` di `php.ini`) dan `allow_url_fopen=On`.
 
 ### Deploy produksi (IIS + PHP)
 
 1. Pasang PHP via Web Platform Installer, aktifkan ekstensi `oci8`.
-2. Buat site baru, Physical Path diarahkan ke folder `public/`.
-3. Tambahkan handler `.php` → `php-cgi.exe`.
-4. (Opsional) `URL Rewrite` tidak wajib karena routing memakai `REQUEST_URI` secara sederhana.
+2. Install modul **URL Rewrite** untuk IIS.
+3. Buat site baru, Physical Path diarahkan ke folder `public/`.
+4. Tambahkan handler `.php` → `php-cgi.exe`.
+5. File `public/web.config` sudah disertakan — semua request selain file statis
+   di-rewrite ke `index.php` sehingga URL bersih (`/`, `/trace`, `/api/*`, `/export-*`) berfungsi.
 
 ## Struktur Proyek
 
@@ -115,6 +119,8 @@ atau jalankan `start.bat` (Windows).
 │   └── Trace.php           # Query trace pengiriman + pencarian customer
 ├── public/                 # Document root
 │   ├── index.php           # Entry point & routing (/, /trace, /api/*, /export-*)
+│   ├── .htaccess           # URL rewrite Apache → index.php
+│   ├── web.config          # URL rewrite IIS → index.php
 │   └── assets/             # style.css + vendor lokal
 │       └── vendor/
 │           ├── jquery/
@@ -129,6 +135,7 @@ atau jalankan `start.bat` (Windows).
 │   └── footer.php          # Script jQuery/Bootstrap/Select2 + init
 ├── config.php              # Baca .env & definisikan konstanta DB
 ├── .env                    # Kredensial database (tidak di-commit)
+├── .htaccess               # (Opsional) bila DocumentRoot = root proyek; me-redirect ke public/
 ├── composer.json           # Dependency: phpoffice/phpspreadsheet
 └── query.text              # Referensi query lama (untuk pengembangan)
 ```
@@ -141,6 +148,7 @@ atau jalankan `start.bat` (Windows).
 | `/trace` | Halaman Trace Pengiriman (form + hasil) |
 | `/api/parts?q=...` | JSON autocomplete Part No (untuk Select2) |
 | `/api/customers?q=...` | JSON autocomplete Customer (untuk Select2) |
+| `/api/wos?q=...` | JSON autocomplete WO No (untuk Select2) |
 | `/export-excel?...` | Download Excel hasil report produksi |
 | `/export-trace?...` | Download Excel hasil trace pengiriman |
 
