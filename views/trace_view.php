@@ -21,7 +21,16 @@
             <tr>
                 <td><?= htmlspecialchars(trim($r['no_do'])) ?></td>
                 <td><?= htmlspecialchars(trim($r['tgl_kirim'])) ?></td>
-                <td><?= htmlspecialchars(trim($r['lot_wo'])) ?></td>
+                <td>
+                    <?php $lotWo = trim($r['lot_wo']); ?>
+                    <?php if ($lotWo !== ''): ?>
+                    <a href="/?wo_no=<?= urlencode($lotWo) ?>" target="_blank" title="Buka detail WO ini">
+                        <?= htmlspecialchars($lotWo) ?>
+                    </a>
+                    <?php else: ?>
+                    &nbsp;
+                    <?php endif; ?>
+                </td>
                 <td><?= htmlspecialchars(trim($r['leoco_pn'])) ?></td>
                 <td><?= htmlspecialchars(trim($r['part_name'])) ?></td>
                 <td class="text-end"><?= number_format((float) $r['qty']) ?></td>

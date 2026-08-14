@@ -179,6 +179,6 @@ $baseQuery = http_build_query($queryParams);
 </nav>
 <?php endif; ?>
 
-<?php elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['part_no'])): ?>
-<div class="alert alert-info mt-3">Tidak ada WO ditemukan untuk part number tersebut.</div>
+<?php elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && (isset($_GET['part_no']) || isset($_GET['wo_no']))): ?>
+<div class="alert alert-info mt-3">Tidak ada WO ditemukan untuk kriteria pencarian tersebut.</div>
 <?php endif; ?>

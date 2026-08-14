@@ -4,44 +4,71 @@ namespace App;
 
 class Report
 {
-    public static function getData($partNo, $dateFrom, $dateTo, $page = 1, $perPage = 20)
+    public static function getData($partNo, $dateFrom, $dateTo, $page = 1, $perPage = 20, $woNo = '')
     {
         $conn = Database::connect();
         $offset = ($page - 1) * $perPage;
+        $woNo = trim((string) $woNo);
 
         // 1. Count total distinct WOs
-        $countSql = "SELECT COUNT(DISTINCT sfb01) AS total 
-                     FROM sfb_file 
-                     WHERE sfb05 = :part_no 
-                       AND sfb81 BETWEEN TO_DATE(:dt_from, 'YYYY-MM-DD') 
-                                     AND TO_DATE(:dt_to, 'YYYY-MM-DD')";
+        if ($woNo !== '') {
+            $likeWo = '%' . $woNo . '%';
+            $countSql = "SELECT COUNT(DISTINCT sfb01) AS total 
+                         FROM sfb_file 
+                         WHERE TRIM(sfb01) LIKE :wo_no";
+        } else {
+            $countSql = "SELECT COUNT(DISTINCT sfb01) AS total 
+                         FROM sfb_file 
+                         WHERE sfb05 = :part_no 
+                           AND sfb81 BETWEEN TO_DATE(:dt_from, 'YYYY-MM-DD') 
+                                         AND TO_DATE(:dt_to, 'YYYY-MM-DD')";
+        }
 
         $stmt = oci_parse($conn, $countSql);
-        oci_bind_by_name($stmt, ':part_no', $partNo);
-        oci_bind_by_name($stmt, ':dt_from', $dateFrom);
-        oci_bind_by_name($stmt, ':dt_to', $dateTo);
+        if ($woNo !== '') {
+            oci_bind_by_name($stmt, ':wo_no', $likeWo);
+        } else {
+            oci_bind_by_name($stmt, ':part_no', $partNo);
+            oci_bind_by_name($stmt, ':dt_from', $dateFrom);
+            oci_bind_by_name($stmt, ':dt_to', $dateTo);
+        }
         oci_execute($stmt);
         $row = oci_fetch_assoc($stmt);
         $total = (int) $row['TOTAL'];
         oci_free_statement($stmt);
 
         // 2. Get paginated WO list
-        $woSql = "SELECT sfb01 FROM (
-                    SELECT sfb01, ROWNUM rnum FROM (
-                        SELECT DISTINCT sfb01 
-                        FROM sfb_file 
-                        WHERE sfb05 = :part_no2 
-                          AND sfb81 BETWEEN TO_DATE(:dt_from2, 'YYYY-MM-DD') 
-                                        AND TO_DATE(:dt_to2, 'YYYY-MM-DD')
-                        ORDER BY sfb01 DESC
-                    ) WHERE ROWNUM <= :max_row
-                  ) WHERE rnum > :offset";
+        if ($woNo !== '') {
+            $woSql = "SELECT sfb01 FROM (
+                        SELECT sfb01, ROWNUM rnum FROM (
+                            SELECT DISTINCT sfb01 
+                            FROM sfb_file 
+                            WHERE TRIM(sfb01) LIKE :wo_no2
+                            ORDER BY sfb01 DESC
+                        ) WHERE ROWNUM <= :max_row
+                      ) WHERE rnum > :offset";
+        } else {
+            $woSql = "SELECT sfb01 FROM (
+                        SELECT sfb01, ROWNUM rnum FROM (
+                            SELECT DISTINCT sfb01 
+                            FROM sfb_file 
+                            WHERE sfb05 = :part_no2 
+                              AND sfb81 BETWEEN TO_DATE(:dt_from2, 'YYYY-MM-DD') 
+                                            AND TO_DATE(:dt_to2, 'YYYY-MM-DD')
+                            ORDER BY sfb01 DESC
+                        ) WHERE ROWNUM <= :max_row
+                      ) WHERE rnum > :offset";
+        }
 
         $stmt = oci_parse($conn, $woSql);
         $maxRow = $offset + $perPage;
-        oci_bind_by_name($stmt, ':part_no2', $partNo);
-        oci_bind_by_name($stmt, ':dt_from2', $dateFrom);
-        oci_bind_by_name($stmt, ':dt_to2', $dateTo);
+        if ($woNo !== '') {
+            oci_bind_by_name($stmt, ':wo_no2', $likeWo);
+        } else {
+            oci_bind_by_name($stmt, ':part_no2', $partNo);
+            oci_bind_by_name($stmt, ':dt_from2', $dateFrom);
+            oci_bind_by_name($stmt, ':dt_to2', $dateTo);
+        }
         oci_bind_by_name($stmt, ':max_row', $maxRow);
         oci_bind_by_name($stmt, ':offset', $offset);
         oci_execute($stmt);
@@ -264,21 +291,34 @@ class Report
         ];
     }
 
-    public static function getAllData($partNo, $dateFrom, $dateTo)
+    public static function getAllData($partNo, $dateFrom, $dateTo, $woNo = '')
     {
         $conn = Database::connect();
+        $woNo = trim((string) $woNo);
 
-        $woSql = "SELECT DISTINCT sfb01 
-                  FROM sfb_file 
-                  WHERE sfb05 = :part_no 
-                    AND sfb81 BETWEEN TO_DATE(:dt_from, 'YYYY-MM-DD') 
-                                  AND TO_DATE(:dt_to, 'YYYY-MM-DD')
-                  ORDER BY sfb01 DESC";
+        if ($woNo !== '') {
+            $likeWo = '%' . $woNo . '%';
+            $woSql = "SELECT DISTINCT sfb01 
+                      FROM sfb_file 
+                      WHERE TRIM(sfb01) LIKE :wo_no
+                      ORDER BY sfb01 DESC";
+        } else {
+            $woSql = "SELECT DISTINCT sfb01 
+                      FROM sfb_file 
+                      WHERE sfb05 = :part_no 
+                        AND sfb81 BETWEEN TO_DATE(:dt_from, 'YYYY-MM-DD') 
+                                      AND TO_DATE(:dt_to, 'YYYY-MM-DD')
+                      ORDER BY sfb01 DESC";
+        }
 
         $stmt = oci_parse($conn, $woSql);
-        oci_bind_by_name($stmt, ':part_no', $partNo);
-        oci_bind_by_name($stmt, ':dt_from', $dateFrom);
-        oci_bind_by_name($stmt, ':dt_to', $dateTo);
+        if ($woNo !== '') {
+            oci_bind_by_name($stmt, ':wo_no', $likeWo);
+        } else {
+            oci_bind_by_name($stmt, ':part_no', $partNo);
+            oci_bind_by_name($stmt, ':dt_from', $dateFrom);
+            oci_bind_by_name($stmt, ':dt_to', $dateTo);
+        }
         oci_execute($stmt);
 
         $woList = [];
@@ -475,5 +515,37 @@ class Report
         }
 
         return array_values($grouped);
+    }
+
+    public static function wos($keyword)
+    {
+        $keyword = trim((string) $keyword);
+        if ($keyword === '') return [];
+        $keyword = mb_substr($keyword, 0, 50);
+
+        $conn = Database::connect();
+
+        $sql = "SELECT * FROM (
+                    SELECT DISTINCT sfb01
+                    FROM sfb_file
+                    WHERE TRIM(sfb01) LIKE :q
+                    ORDER BY sfb01
+                ) WHERE ROWNUM <= 20";
+
+        $stmt = oci_parse($conn, $sql);
+        $q = '%' . $keyword . '%';
+        oci_bind_by_name($stmt, ':q', $q);
+        oci_execute($stmt);
+
+        $results = [];
+        while ($row = oci_fetch_assoc($stmt)) {
+            $results[] = [
+                'id' => trim($row['SFB01']),
+                'text' => trim($row['SFB01'])
+            ];
+        }
+
+        oci_free_statement($stmt);
+        return $results;
     }
 }

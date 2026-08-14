@@ -31,6 +31,24 @@ if ($uri === '/api/parts') {
 }
 
 // ──────────────────────────────────────────────
+// Route: /api/wos — Select2 AJAX autocomplete WO No
+// ──────────────────────────────────────────────
+if ($uri === '/api/wos') {
+    header('Content-Type: application/json');
+    $keyword = $_GET['q'] ?? '';
+    try {
+        $results = Report::wos($keyword);
+        echo json_encode($results);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['error' => $e->getMessage()]);
+    } finally {
+        Database::close();
+    }
+    exit;
+}
+
+// ──────────────────────────────────────────────
 // Route: /api/customers — Select2 AJAX autocomplete (Trace Pengiriman)
 // ──────────────────────────────────────────────
 if ($uri === '/api/customers') {
@@ -55,15 +73,26 @@ if ($uri === '/export-excel') {
     $partNo   = $_GET['part_no'] ?? '';
     $dateFrom = $_GET['date_from'] ?? '';
     $dateTo   = $_GET['date_to']   ?? '';
+    $woNo     = $_GET['wo_no']     ?? '';
 
-    if (!$partNo || !$dateFrom || !$dateTo) {
+    $isWoSearch = $woNo !== '';
+
+    if ($isWoSearch) {
+        if (!$woNo) {
+            http_response_code(400);
+            echo 'Parameter tidak lengkap';
+            exit;
+        }
+    } elseif (!$partNo || !$dateFrom || !$dateTo) {
         http_response_code(400);
         echo 'Parameter tidak lengkap';
         exit;
     }
 
     try {
-        $grouped = Report::getAllData($partNo, $dateFrom, $dateTo);
+        $grouped = $isWoSearch
+            ? Report::getAllData('', '', '', $woNo)
+            : Report::getAllData($partNo, $dateFrom, $dateTo);
     } catch (\Throwable $e) {
         http_response_code(500);
         echo 'Error: ' . $e->getMessage();
@@ -217,8 +246,11 @@ if ($uri === '/export-excel') {
         $sheet->getColumnDimension($colLetter)->setAutoSize(true);
     }
 
+    $exportName = $isWoSearch
+        ? 'report_wo_' . $woNo . '.xlsx'
+        : 'report_leoco_' . $partNo . '_' . $dateFrom . '_' . $dateTo . '.xlsx';
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    header('Content-Disposition: attachment; filename="report_leoco_' . $partNo . '_' . $dateFrom . '_' . $dateTo . '.xlsx"');
+    header('Content-Disposition: attachment; filename="' . $exportName . '"');
     header('Cache-Control: max-age=0');
 
     $writer = new Xlsx($spreadsheet);
@@ -337,12 +369,22 @@ if ($uri === '/trace') {
 $partNo   = $_GET['part_no'] ?? '';
 $dateFrom = $_GET['date_from'] ?? '';
 $dateTo   = $_GET['date_to'] ?? '';
+$woNo     = $_GET['wo_no'] ?? '';
 $page     = max(1, (int) ($_GET['page'] ?? 1));
 
 $report = null;
 $selectedPart = $partNo;
+$selectedWo   = $woNo;
 
-if ($partNo && $dateFrom && $dateTo) {
+if ($woNo !== '') {
+    try {
+        $report = Report::getData('', '', '', $page, 20, $woNo);
+    } catch (\Throwable $e) {
+        $error = $e->getMessage();
+    } finally {
+        Database::close();
+    }
+} elseif ($partNo && $dateFrom && $dateTo) {
     try {
         $report = Report::getData($partNo, $dateFrom, $dateTo, $page);
     } catch (\Throwable $e) {
@@ -350,6 +392,8 @@ if ($partNo && $dateFrom && $dateTo) {
     } finally {
         Database::close();
     }
+} elseif (isset($_GET['part_no']) || isset($_GET['wo_no'])) {
+    $error = 'Isi WO No, atau lengkapi Part No beserta rentang tanggal.';
 }
 
 require __DIR__ . '/../views/header.php';

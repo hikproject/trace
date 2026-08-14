@@ -64,6 +64,36 @@
                     }
                 }
             });
+
+            $('.select2-wo').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Ketik No WO...',
+                allowClear: true,
+                ajax: {
+                    url: '/api/wos',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return { q: params.term };
+                    },
+                    processResults: function(data) {
+                        return { results: data };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 1,
+                language: {
+                    inputTooShort: function() {
+                        return 'Ketik minimal 1 karakter';
+                    },
+                    searching: function() {
+                        return 'Mencari...';
+                    },
+                    noResults: function() {
+                        return 'Tidak ditemukan';
+                    }
+                }
+            });
         });
     </script>
 </body>
