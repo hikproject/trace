@@ -5,8 +5,8 @@
 </div>
 
 <?php $idx = 0; foreach ($report['data'] as $wo): $idx++; ?>
-<div class="card mb-2 border">
-    <div class="card-header bg-light p-0" role="button" aria-expanded="false">
+<details class="card mb-2 border">
+    <summary class="card-header bg-light p-0">
         <div class="w-100 m-0 py-1 px-3">
             <div class="row gx-2" style="font-size:11px;color:#6c757d;">
                 <div class="col-auto" style="width:28px"></div>
@@ -32,12 +32,11 @@
                 <div class="col-1 text-truncate" title="<?= htmlspecialchars(trim($wo['part_name'])) ?>"><?= htmlspecialchars(trim($wo['part_name'])) ?></div>
                 <div class="col-1 text-truncate"><?= htmlspecialchars(trim($wo['tanggal_wo_buat'])) ?></div>
                 <div class="col-1 text-truncate"><?= htmlspecialchars(trim($wo['tanggal_produksi'])) ?></div>
-                <div class="col-1 text-end fw-semibold"><?= number_format($wo['production_qty']) ?></div>
+                <div class="col-1 text-end fw-semibold"><?= number_format((float) $wo['production_qty']) ?></div>
             </div>
         </div>
-    </div>
-    <div id="woDetail<?= $idx ?>" class="collapse">
-        <div class="card-body p-0">
+    </summary>
+    <div class="card-body p-0">
             <table class="table table-sm table-bordered mb-0" style="font-size:12px;">
                 <thead>
                     <tr>
@@ -67,7 +66,7 @@
                         <td style="background:#e0f2fe"><?= htmlspecialchars(trim($iss['lot_no'])) ?></td>
                         <td style="background:#e0f2fe"><?= htmlspecialchars(trim($iss['spec'])) ?></td>
                         <td style="background:#e0f2fe" class="text-center"><?= htmlspecialchars(trim($iss['unit'])) ?></td>
-                        <td class="text-end" style="background:#e0f2fe"><?= number_format($iss['issuing_qty']) ?></td>
+                        <td class="text-end" style="background:#e0f2fe"><?= number_format((float) $iss['issuing_qty']) ?></td>
                     </tr>
                     <?php endforeach; ?>
                     <?php endif; ?>
@@ -97,10 +96,10 @@
                     <tr>
                         <td style="background:#e3f2fd"><?= htmlspecialchars(trim($det['fqc_no'])) ?></td>
                         <td style="background:#e3f2fd"><?= htmlspecialchars(trim($det['tdate_fqc'])) ?></td>
-                        <td class="text-end" style="background:#e3f2fd"><?= number_format($det['qsent']) ?></td>
+                        <td class="text-end" style="background:#e3f2fd"><?= number_format((float) $det['qsent']) ?></td>
                         <td style="background:#e8f5e9"><?= htmlspecialchars(trim($det['stock_in_no'])) ?></td>
                         <td style="background:#e8f5e9"><?= htmlspecialchars(trim($det['stock_in_date'])) ?></td>
-                        <td class="text-end" style="background:#e8f5e9"><?= number_format($det['stock_in_qty']) ?></td>
+                        <td class="text-end" style="background:#e8f5e9"><?= number_format((float) $det['stock_in_qty']) ?></td>
                     </tr>
                     <?php endforeach; ?>
                     <?php endif; ?>
@@ -126,28 +125,23 @@
                     <tr>
                         <td style="background:#fff3e0"><?= htmlspecialchars(trim($bo['do_no'])) ?></td>
                         <td style="background:#fff3e0"><?= htmlspecialchars(trim($bo['tgl_kirim'])) ?></td>
-                        <td class="text-end" style="background:#fff3e0"><?= number_format($bo['do_qty']) ?></td>
+                        <td class="text-end" style="background:#fff3e0"><?= number_format((float) $bo['do_qty']) ?></td>
                     </tr>
                     <?php endforeach; ?>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
-    </div>
-</div>
+</details>
 <?php endforeach; ?>
 
 <script>
-document.querySelectorAll('.card-header[role="button"]').forEach(function(header) {
-    header.addEventListener('click', function() {
-        var collapse = header.nextElementSibling;
-        if (!collapse || !collapse.classList.contains('collapse')) return;
-        var icon = header.querySelector('.toggle-icon');
-        var isShown = collapse.classList.toggle('show');
-        if (icon) icon.textContent = isShown ? '▼' : '▶';
-        header.setAttribute('aria-expanded', isShown ? 'true' : 'false');
-    });
-});
+document.addEventListener('toggle', function(e) {
+    if (e.target && e.target.tagName === 'DETAILS') {
+        var icon = e.target.querySelector('.toggle-icon');
+        if (icon) icon.textContent = e.target.open ? '▼' : '▶';
+    }
+}, true);
 </script>
 
 <?php if ($report['totalPages'] > 1): ?>

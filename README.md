@@ -109,6 +109,29 @@ atau jalankan `start.bat` (Windows).
 5. File `public/web.config` sudah disertakan — semua request selain file statis
    di-rewrite ke `index.php` sehingga URL bersih (`/`, `/trace`, `/api/*`, `/export-*`) berfungsi.
 
+### Deploy produksi (aaPanel / Nginx)
+
+> **Penting:** Nginx **mengabaikan file `.htaccess`** (itu milik Apache). Karena itu untuk
+> aaPanel yang memakai engine **Nginx**, URL rewrite harus ditambahkan di konfigurasi situs,
+> bukan lewat `.htaccess`.
+
+1. Pastikan **run directory** (site root) situs diarahkan ke folder `public/`.
+2. Buka aaPanel → **Website** → pilih situs → **设置 (Settings)** → **配置文件 (Config file)**.
+3. Di dalam blok `server { }`, pastikan ada rule berikut (tambahkan jika belum ada):
+
+   ```nginx
+   location / {
+       try_files $uri $uri/ /index.php?$query_string;
+   }
+   ```
+
+   Jika blok `location /` sudah ada, cukup tambahkan baris `try_files` tersebut.
+4. **Save** lalu **Reload Nginx** dari panel.
+5. Uji: `/`, `/trace`, `/api/*`, `/export-*` — semuanya harus 200 (lakukan hard-refresh/Ctrl+F5).
+
+Catatan: aset statis `/assets/...` tetap dilayani langsung oleh Nginx (try_files mencocokkan
+file asli sebelum jatuh ke `index.php`).
+
 ## Struktur Proyek
 
 ```
@@ -158,5 +181,6 @@ atau jalankan `start.bat` (Windows).
 |---|---|
 | `Oracle connection failed` | Kredensial/SID salah, Oracle client tidak terpasang, atau `oci8` tidak aktif. Cek `php -m` |
 | Dropdown / klik WO tidak berfungsi | Sudah dibundel lokal; pastikan folder `public/assets/vendor/` ikut ter-copy ke server |
+| Halaman `/` terbuka tapi `/trace`, `/api/*` 404 | Server memakai **Nginx** yang mengabaikan `.htaccess` — tambahkan rule `try_files` di konfigurasi situs (lihat "Deploy aaPanel / Nginx") |
 | Halaman lambat saat ramai | `php -S` single-threaded — pindah ke Apache (lihat bagian deploy) |
 | Export Excel error | Pastikan `vendor/` terpasang (`composer install`) |
